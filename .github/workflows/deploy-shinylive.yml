@@ -25,18 +25,22 @@ jobs:
           r-version: "release"
           use-public-rspm: true
 
-      - name: Cache R packages
-        uses: actions/cache@v4
+      - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: r-shinylive-${{ runner.os }}-${{ hashFiles('.github/workflows/deploy-shinylive.yml') }}
-          restore-keys: |
-            r-shinylive-${{ runner.os }}-
-
-      - name: Install R package dependencies
-        run: |
-          install.packages(c("shinylive", "eulerr", "scales"), repos = "https://cloud.r-project.org")
-        shell: Rscript {0}
+          # Install via pak, which pulls prebuilt Ubuntu binaries from the
+          # public Posit Package Manager (RSPM) configured above — this
+          # avoids compiling from source, which fails on GitHub's runners
+          # for packages needing system libraries that aren't preinstalled
+          # (e.g. libcurl-dev, libuv-dev) and, worse, doesn't necessarily
+          # fail the step: install.packages() only warns on a single
+          # package failure rather than halting, so a broken install can
+          # silently pass this step and only surface later as "there is
+          # no package called '...'" during export.
+          packages: |
+            any::shinylive
+            any::eulerr
+            any::scales
+          cache-version: 1
 
       - name: Export shinylive app
         # If this step prints "Package version mismatch" warnings, the
