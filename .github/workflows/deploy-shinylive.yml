@@ -36,9 +36,22 @@ jobs:
           # package failure rather than halting, so a broken install can
           # silently pass this step and only surface later as "there is
           # no package called '...'" during export.
+          #
+          # eulerr is pinned to 7.1.0 to match the version currently
+          # published on the shinylive/webR wasm package repo
+          # (https://repo.r-wasm.org/src/contrib/PACKAGES). shinylive's
+          # dependency resolver reads the *locally installed* package's
+          # DESCRIPTION to decide what to bundle, not the wasm repo's — if
+          # CRAN's current eulerr (newer, with fewer declared deps) is
+          # installed here instead, export succeeds but the deployed app
+          # silently ships without eulerr's real runtime dependencies
+          # (polyclip, GenSA, polylabelr) and breaks in the browser with
+          # "there is no package called 'polyclip'". If this pin starts
+          # failing, re-check the wasm repo's current eulerr version and
+          # update it to match — don't just remove the pin.
           packages: |
             any::shinylive
-            any::eulerr
+            eulerr@7.1.0
             any::scales
           cache-version: 1
 
@@ -51,6 +64,19 @@ jobs:
         run: |
           shinylive::export(appdir = ".", destdir = "site")
         shell: Rscript {0}
+
+      - name: Sanity-check bundled packages
+        # eulerr's real runtime deps (see the pin comment above) must be
+        # present in the exported wasm package set, or the deployed app
+        # will error at runtime the first time it draws a plot.
+        run: |
+          set -euo pipefail
+          for pkg in eulerr polyclip GenSA polylabelr scales; do
+            if [ ! -d "site/shinylive/webr/packages/$pkg" ]; then
+              echo "::error::Expected package '$pkg' missing from site/shinylive/webr/packages/ — the exported app will likely fail at runtime. See the eulerr version-pin comment in this workflow."
+              exit 1
+            fi
+          done
 
       - uses: actions/configure-pages@v5
 
