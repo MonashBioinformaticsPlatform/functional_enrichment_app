@@ -2,6 +2,8 @@
 
 Code for a toy shiny app that calculates functional enrichment, and allows interactive tweaking of gene list sizes, gene pathway list sizes e.t.c.
 
+You can play with it here: https://monashbioinformaticsplatform.github.io/functional_enrichment_app/
+
 ## Building a static (shinylive) version
 
 This app can be exported to a static, serverless site using
